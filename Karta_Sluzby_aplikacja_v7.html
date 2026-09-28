@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karta Służby — Kierownik Pociągu</title>
+<link rel="manifest" href="karta-sluzby.webmanifest">
+<meta name="theme-color" content="#17365d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root{
+  --accent:#17365d; --accent2:#244a73; --bg:#eef3f8; --card:#fff;
+  --text:#1f334d; --muted:#718096; --line:#d5dee8; --soft:#eaf0f7;
+  --green:#d9ead3; --greenText:#237a36; --pink:#f7d6e7;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+.app{display:flex;min-height:100vh}
+.sidebar{width:275px;background:#fff;border-left:1px solid var(--line);order:2;padding:22px 16px;box-shadow:-8px 0 25px #17365d10}
+.main{flex:1;order:1;padding:22px 28px;min-width:0}
+.brand{font-weight:900;font-size:21px;color:var(--accent);margin-bottom:28px;display:flex;gap:10px;align-items:center}
+.user{background:var(--soft);padding:13px;border-radius:12px;font-size:12px;margin-bottom:22px}
+.user b{display:block;font-size:13px;margin-top:4px}
+.tab{width:100%;padding:14px 15px;border:0;background:transparent;border-radius:11px;text-align:left;font-weight:800;color:var(--text);cursor:pointer;margin-bottom:6px;font-size:14px}
+.tab:hover,.tab.active{background:var(--accent);color:white}
+.clockbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.datetime{font-size:14px;color:var(--muted)}
+.datetime strong{display:block;color:var(--text);font-size:21px}
+.page{display:none}.page.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:0 7px 25px #17365d12;padding:22px}
+.page-title{font-size:25px;font-weight:900;margin:0 0 5px}
+.subtitle{color:var(--muted);margin-bottom:20px;font-size:13px}
+.calendar{background:white;border-radius:18px;border:1px solid var(--line);overflow:hidden;max-width:900px;margin:auto;box-shadow:0 8px 25px #17365d12}
+.cal-head{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;padding:20px;display:flex;justify-content:space-between;align-items:center}
+.cal-month{font-size:22px;font-weight:900;text-transform:capitalize}
+.cal-head button{background:#ffffff22;color:white;border:1px solid #ffffff44}
+button{border:0;border-radius:9px;padding:9px 13px;font-weight:800;cursor:pointer}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr)}
+.dow{padding:11px;text-align:center;font-size:11px;font-weight:900;color:var(--muted);background:#f7f9fb}
+.day{min-height:92px;border-top:1px solid var(--line);border-right:1px solid var(--line);padding:9px;cursor:pointer}
+.day:hover{background:#f5f8fc}.day.muted{color:#c1cad4}.day.today{background:#eaf0f7}.day.selected{outline:3px solid var(--accent);outline-offset:-3px}
+.daynum{font-weight:900}.event-dot{margin-top:9px;font-size:11px;background:var(--accent);color:white;padding:4px 6px;border-radius:6px;display:inline-block}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.primary{background:var(--accent);color:#fff}.secondary{background:#e7edf4;color:var(--accent)}
+.service-head{display:grid;grid-template-columns:150px 180px 1fr;gap:12px;margin-bottom:18px}
+.field label{display:block;font-size:11px;font-weight:900;color:var(--muted);margin:0 0 5px;text-transform:uppercase}
+.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;background:white;color:var(--text);font-weight:700}
+.table-wrap{overflow:auto;border:1px solid var(--line);border-radius:12px}
+table{width:100%;border-collapse:collapse;min-width:850px}
+th{background:var(--accent);color:white;padding:12px 8px;font-size:11px;text-transform:uppercase}
+td{border-top:1px solid var(--line);padding:7px}
+td input,td select{width:100%;border:1px solid #dce4ec;border-radius:7px;padding:9px;background:#fff}
+.add-row{margin-top:12px}
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.admin-card{border:1px solid var(--line);border-radius:14px;padding:18px}
+.list{margin-top:12px;display:flex;flex-wrap:wrap;gap:7px}
+.chip{border-radius:20px;padding:7px 10px;font-size:12px;font-weight:800;display:flex;align-items:center;gap:7px}
+.chip button{padding:2px 6px;font-size:11px;background:#ffffffaa;color:inherit}
+.color-pickers{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.color-pickers input[type=color]{width:100%;height:38px;padding:2px;border:1px solid var(--line);border-radius:8px}
+.service-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.service-card{border:1px solid var(--line);border-radius:16px;padding:16px;background:#fff;box-shadow:0 5px 18px #17365d10}
+.service-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+.service-number{font-size:20px;font-weight:900;color:var(--accent)}
+.service-date{font-size:12px;color:var(--muted);font-weight:800}
+.service-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}
+.meta-box{background:var(--soft);padding:9px;border-radius:10px;font-size:11px}
+.meta-box b{display:block;font-size:13px;color:var(--text);margin-top:2px}
+.service-actions{display:flex;gap:7px;margin-top:12px}
+.danger{background:#fde8e8;color:#a22}
+.empty-cards{padding:45px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:14px}
+.color-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+.color-row input{width:55px;height:35px;padding:2px;border:1px solid var(--line)}
+.notice{padding:11px;background:#fff8df;border:1px solid #f1df9a;border-radius:10px;font-size:12px;margin-bottom:15px}
+.empty{padding:35px;text-align:center;color:var(--muted)}
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.stats-card{border:1px solid var(--line);border-radius:14px;padding:18px;background:#fff}
+.stats-list{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+.stats-item{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:11px;border:1px solid var(--line);border-radius:11px;background:#fbfcfe}
+.stats-name{font-weight:900}.stats-dates{font-size:12px;color:var(--muted);text-align:right;line-height:1.6}
+.stat-number{font-size:25px;font-weight:900;color:var(--accent)}
+.settlement-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.control-box{background:var(--soft);border-radius:12px;padding:12px 15px;min-width:180px}.control-box label{display:block;font-size:11px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:5px}.control-box input,.control-box select{width:100%;border:1px solid var(--line);border-radius:8px;padding:10px;background:#fff;font-weight:800}
+.settlement-section{border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:15px}.settlement-section h3{margin:0 0 12px}.settlement-row{display:grid;grid-template-columns:1fr 120px 150px 42px;gap:9px;align-items:center;margin-bottom:9px}.settlement-row input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px}.settlement-total{margin-top:18px;background:var(--accent);color:#fff;border-radius:13px;padding:16px;display:flex;justify-content:space-between;align-items:center;font-size:17px;font-weight:900}.mini-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}.mini-summary .meta-box{background:var(--soft)}
+.home-dashboard{display:grid;grid-template-columns:1fr 1.4fr;gap:14px;max-width:1100px;margin:0 auto 18px}
+.dashboard-box{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;box-shadow:0 7px 25px #17365d12}
+.dashboard-box h3{margin:0 0 8px;font-size:14px}.countdown{font-size:28px;font-weight:900;color:var(--accent);margin:8px 0}.dashboard-muted{font-size:12px;color:var(--muted)}
+.active-route{border-left:5px solid var(--accent)}.route-head{display:flex;justify-content:space-between;align-items:center;gap:10px}.route-title{font-weight:900;font-size:17px}.route-stops{margin-top:12px;display:flex;flex-direction:column;gap:7px;max-height:250px;overflow:auto}.route-stop{display:grid;grid-template-columns:70px 1fr 70px;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfe;font-size:12px}.route-stop.current{background:var(--soft);border-color:var(--accent);box-shadow:inset 4px 0 0 var(--accent)}
+.route-stop.current-segment{border-color:var(--accent);background:#f7faff}
+.route-now{font-size:10px;font-weight:900;color:var(--accent);text-align:center;white-space:nowrap}.route-time{font-weight:900}.route-station{font-weight:800}.route-kind{text-align:right;color:var(--muted);font-size:10px;text-transform:uppercase}
+.route-admin{grid-column:1/-1}.route-stop-editor{display:grid;grid-template-columns:1.5fr 130px 130px 42px;gap:8px;margin-bottom:8px}.route-stop-editor input{width:100%;border:1px solid var(--line);border-radius:8px;padding:9px}.route-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}.route-item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe}.route-item small{color:var(--muted)}
+.backup-actions{display:flex;gap:8px;flex-wrap:wrap}.file-label{display:inline-flex;align-items:center;gap:6px;background:#e7edf4;color:var(--accent);padding:9px 13px;border-radius:9px;font-weight:800;cursor:pointer}.file-label input{display:none}
+@media(max-width:900px){.home-dashboard{grid-template-columns:1fr}.route-admin{grid-column:auto}.route-stop-editor{grid-template-columns:1fr 1fr 1fr 42px}}
+@media(max-width:900px){.sidebar{width:220px}.main{padding:16px}.service-head,.admin-grid,.stats-grid{grid-template-columns:1fr}.settlement-row{grid-template-columns:1fr 1fr}.settlement-row button{grid-column:2}}
+
+@media(max-width:900px){.sidebar{width:220px}.main{padding:16px}.service-head,.admin-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.app{display:block}.sidebar{width:auto;border-left:0;border-bottom:1px solid var(--line)}.main{padding:12px}.day{min-height:65px}}
+
+.mobile-nav{display:none}
+@media(max-width:700px){
+  body{padding-bottom:72px;overflow-x:hidden}
+  .app{display:block;min-height:100vh}
+  .sidebar{display:none}
+  .main{padding:10px 10px 18px;width:100%;}
+  .clockbar{position:sticky;top:0;z-index:20;background:var(--bg);padding:7px 2px 10px;margin:0 -2px 8px;align-items:center}
+  .datetime strong{font-size:19px}.datetime{font-size:11px}.clockbar #selectedInfo{display:none}
+  .mobile-nav{display:flex;position:fixed;left:0;right:0;bottom:0;height:68px;z-index:1000;background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid var(--line);box-shadow:0 -8px 25px #17365d18;justify-content:space-around;padding:5px 3px calc(5px + env(safe-area-inset-bottom));}
+  .tab-mobile{border:0;background:transparent;color:var(--muted);display:flex;flex:1;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;padding:5px 2px;cursor:pointer;font-weight:800}
+  .tab-mobile span{font-size:20px;line-height:1}.tab-mobile small{font-size:9px;font-weight:900}.tab-mobile.active{color:var(--accent);background:var(--soft)}
+  .tab-mobile.add{margin-top:-18px;max-width:62px;height:62px;align-self:flex-start;background:var(--accent);color:#fff;border-radius:50%;box-shadow:0 6px 18px #17365d35;border:5px solid var(--bg)}
+  .tab-mobile.add span{font-size:26px}.tab-mobile.add small{font-size:8px}
+  .page-title{font-size:21px}.subtitle{font-size:12px;margin-bottom:14px}.card{padding:13px;border-radius:15px}
+  .home-dashboard{display:flex;flex-direction:column;gap:10px;margin:0 0 10px}.dashboard-box{padding:14px;border-radius:15px}.countdown{font-size:25px}
+  .active-route{order:2}.route-head{align-items:flex-start}.route-title{font-size:15px}.route-stops{max-height:none}
+  .route-stop{grid-template-columns:52px 1fr 55px;padding:8px;font-size:11px}.route-now{font-size:9px}
+  .calendar{border-radius:14px}.cal-head{padding:13px}.cal-month{font-size:18px}.cal-head button{padding:8px 12px}.dow{padding:8px 2px;font-size:9px}.day{min-height:62px;padding:6px;font-size:11px}.daynum{font-size:12px}.event-dot{font-size:8px;padding:3px 4px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .service-head{display:grid;grid-template-columns:1fr 1fr;gap:9px}.service-head .field:last-child{grid-column:1/-1}
+  .toolbar{gap:7px}.toolbar button{flex:1;min-height:42px}
+  .table-wrap{border:0;overflow:visible}.table-wrap table{min-width:0;display:block}.table-wrap thead{display:none}.table-wrap tbody{display:flex;flex-direction:column;gap:10px}.table-wrap tr{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;border:1px solid var(--line);border-radius:12px;background:#fbfcfe}.table-wrap td{border:0;padding:0}.table-wrap td:nth-child(1)::before{content:'🕐 Odjazd';display:block}.table-wrap td:nth-child(2)::before{content:'🕐 Przyjazd';display:block}.table-wrap td:nth-child(3)::before{content:'📍 Od';display:block}.table-wrap td:nth-child(4)::before{content:'📍 Do';display:block}.table-wrap td:nth-child(5)::before{content:'🚆 Rodzaj';display:block}.table-wrap td:nth-child(6)::before{content:'🔢 Numer';display:block}.table-wrap td:nth-child(7){grid-column:1/-1}.table-wrap td:nth-child(7)::before{content:'📝 Uwagi';display:block}.table-wrap td:nth-child(8){grid-column:1/-1;text-align:right}.table-wrap td::before{font-size:9px;font-weight:900;color:var(--muted);text-transform:uppercase;margin-bottom:3px}.table-wrap td input,.table-wrap td select{padding:10px;font-size:13px}.table-wrap td button{min-height:38px}
+  .service-cards{grid-template-columns:1fr;gap:10px}.service-card{padding:13px;border-radius:14px}.service-meta{gap:6px}.meta-box{padding:8px}
+  .stats-grid{grid-template-columns:1fr;gap:10px}.stats-card{padding:13px}.stats-item{display:block}.stats-dates{text-align:left;margin-top:5px}
+  .settlement-top{display:grid;grid-template-columns:1fr 1fr;gap:8px}.settlement-top .control-box:first-child{grid-column:1/-1}.control-box{min-width:0;padding:10px}.settlement-section{padding:12px}.settlement-row{grid-template-columns:1fr 1fr;gap:7px}.settlement-row input:first-child{grid-column:1/-1}.settlement-row button{grid-column:2;justify-self:end}.settlement-total{font-size:15px;padding:13px}
+  .admin-grid{grid-template-columns:1fr;gap:10px}.admin-card{padding:13px}.route-admin{grid-column:auto}.route-stop-editor{grid-template-columns:1fr 1fr;gap:7px}.route-stop-editor input:first-child{grid-column:1/-1}.route-stop-editor button{grid-column:2;justify-self:end}.backup-actions>*{width:100%;justify-content:center;text-align:center}
+  .list{gap:5px}.chip{font-size:11px}
+}
+@media(min-width:701px){.main{padding-bottom:28px}}
+
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+  <div class="brand">🚆 KARTA SŁUŻBY</div>
+  <div class="user">Użytkownik:<b>Kierownik Pociągu - Maciej Stachowicz</b></div>
+  <button class="tab active" data-page="home">📅 Kalendarz</button>
+  <button class="tab" data-page="service">➕ Dodaj kartę służby</button>
+  <button class="tab" data-page="cards">📋 Utworzone karty służb</button>
+  <button class="tab" data-page="stats">📊 Statystyki</button>
+  <button class="tab" data-page="settlement">💰 Dodaj rozliczenie</button>
+  <button class="tab" data-page="admin">⚙️ Administracja</button>
+</aside>
+
+<nav class="mobile-nav" aria-label="Nawigacja mobilna">
+  <button class="tab-mobile active" data-page="home"><span>🏠</span><small>Start</small></button>
+  <button class="tab-mobile" data-page="cards"><span>📋</span><small>Karty</small></button>
+  <button class="tab-mobile add" data-page="service"><span>＋</span><small>Dodaj</small></button>
+  <button class="tab-mobile" data-page="settlement"><span>💰</span><small>Rozlicz</small></button>
+  <button class="tab-mobile" data-page="stats"><span>📊</span><small>Statystyki</small></button>
+  <button class="tab-mobile" data-page="admin"><span>⚙️</span><small>Admin</small></button>
+</nav>
+
+<main class="main">
+  <div class="clockbar">
+    <div class="datetime"><strong id="clock">--:--:--</strong><span id="dateNow"></span></div>
+    <div id="selectedInfo" class="datetime">Wybierz dzień w kalendarzu</div>
+  </div>
+
+  <section id="home" class="page active">
+    <div class="home-dashboard">
+      <div class="dashboard-box">
+        <h3>⏱️ Do rozpoczęcia służby zostało...</h3>
+        <div id="serviceCountdown" class="countdown">—</div>
+        <div id="serviceCountdownInfo" class="dashboard-muted">Brak służby na dziś.</div>
+      </div>
+      <div class="dashboard-box active-route">
+        <div class="route-head"><div><h3>🚆 Trasa pociągu</h3><div id="activeRouteTitle" class="route-title">Brak aktywnej trasy</div></div><div id="activeRouteTime" class="dashboard-muted"></div></div>
+        <div id="activeRouteStops" class="route-stops"><div class="empty">Gdy trwa przejazd z karty służby, trasa pojawi się tutaj.</div></div>
+      </div>
+    </div>
+    <div class="calendar">
+      <div class="cal-head">
+        <button onclick="changeMonth(-1)">‹</button>
+        <div class="cal-month" id="monthLabel"></div>
+        <button onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-grid" id="calendar"></div>
+    </div>
+  </section>
+
+  <section id="service" class="page">
+    <div class="card">
+      <h1 class="page-title">Dodaj kartę służby</h1>
+      <div class="subtitle">Najpierw ustaw numer i dzień służby. Dzień tygodnia zostanie uzupełniony automatycznie.</div>
+      <div class="service-head">
+        <div class="field"><label>Numer służby</label><input id="serviceNo" type="number" placeholder="np. 76"></div>
+        <div class="field"><label>Dzień</label><input id="serviceDate" type="date" onchange="updateWeekday()"></div>
+        <div class="field"><label>Dzień tygodnia</label><input id="weekday" readonly></div>
+      </div>
+      <div class="toolbar">
+        <button class="primary" onclick="addTrip()">＋ Dodaj pociąg</button>
+        <button class="secondary" onclick="saveService()">💾 Zapisz kartę</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>🕐 Odjazd</th><th>🕐 Przyjazd</th><th>📍 Stacja rozpoczęcia</th><th>📍 Stacja końcowa</th><th>🚆 Rodzaj pociągu</th><th>🔢 Numer pociągu</th><th>📝 Uwagi</th><th></th></tr></thead>
+          <tbody id="trips"></tbody>
+        </table>
+      </div>
+      <div id="emptyTrips" class="empty">Nie dodano jeszcze pociągu. Naciśnij „＋ Dodaj pociąg”.</div>
+    </div>
+  </section>
+
+  <section id="cards" class="page">
+    <div class="card">
+      <h1 class="page-title">Utworzone karty służb</h1>
+      <div class="subtitle">Zapisane karty służb są dostępne tutaj. Możesz je otworzyć lub usunąć.</div>
+      <div id="serviceCards" class="service-cards"></div>
+    </div>
+  </section>
+
+  <section id="stats" class="page">
+    <div class="card">
+      <h1 class="page-title">Statystyki</h1>
+      <div class="subtitle">Historia rodzajów pociągów, stacji oraz rozliczeń ze wszystkich zapisanych kart służb.</div>
+      <div id="statsSummary" class="mini-summary"></div>
+      <div class="stats-grid" style="margin-top:18px">
+        <div class="stats-card"><h3>🚆 Rodzaje pociągów</h3><div id="trainStats" class="stats-list"></div></div>
+        <div class="stats-card"><h3>📍 Stacje</h3><div id="stationStats" class="stats-list"></div></div>
+        <div class="stats-card"><h3>🎟️ Sprzedane bilety</h3><div id="ticketStats" class="stats-list"></div></div>
+        <div class="stats-card"><h3>➕ Opłaty dodatkowe</h3><div id="feeStats" class="stats-list"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="settlement" class="page">
+    <div class="card">
+      <h1 class="page-title">Dodaj rozliczenie</h1>
+      <div class="subtitle">Rozliczenie jest przypisane do wybranej karty służby. Możesz dodać dowolną liczbę pozycji.</div>
+      <div class="settlement-top">
+        <div class="control-box"><label>Karta służby</label><select id="settlementService" onchange="loadSettlement()"></select></div>
+        <div class="control-box"><label>Data</label><input id="settlementDate" type="date" readonly></div>
+        <div class="control-box"><label>Ilość kontroli</label><input id="controlsCount" type="number" min="0" step="1" placeholder="np. 86"></div>
+      </div>
+      <div class="settlement-section">
+        <h3>🎟️ Sprzedane bilety</h3>
+        <div id="ticketRows"></div>
+        <button class="secondary" onclick="addSettlementRow('tickets')">＋ Dodaj sprzedane bilety</button>
+      </div>
+      <div class="settlement-section">
+        <h3>➕ Opłaty dodatkowe</h3>
+        <div id="feeRows"></div>
+        <button class="secondary" onclick="addSettlementRow('fees')">＋ Dodaj opłatę dodatkową</button>
+      </div>
+      <div class="settlement-total"><span>💰 Suma rozliczenia</span><span id="settlementTotal">0,00 zł</span></div>
+      <div class="toolbar" style="margin-top:14px;margin-bottom:0"><button class="primary" onclick="saveSettlement()">💾 Zapisz rozliczenie</button><button class="secondary" onclick="clearSettlementForm()">↺ Wyczyść</button></div>
+    </div>
+  </section>
+
+  <section id="admin" class="page">
+    <div class="card">
+      <h1 class="page-title">Administracja</h1>
+      <div class="subtitle">Tutaj przygotujesz słowniki, które później pojawiają się w karcie służby.</div>
+      <div class="admin-grid">
+        <div class="admin-card">
+          <h3>🚆 Rodzaje pociągów</h3>
+          <div class="field"><label>Rodzaj pociągu</label><input id="trainInput" placeholder="np. EN57AKM, EN76, ER75..."></div>
+          <div class="color-pickers">
+            <div class="field"><label>Kolor czcionki</label><input type="color" id="trainTextColor" value="#1f334d"></div>
+            <div class="field"><label>Kolor tła</label><input type="color" id="trainBgColor" value="#eaf0f7"></div>
+          </div>
+          <button class="primary" style="margin-top:10px" onclick="addTrain()">＋ Dodaj rodzaj pociągu</button>
+          <div class="list" id="trainList"></div>
+        </div>
+        <div class="admin-card">
+          <h3>📍 Dodaj stację</h3>
+          <div class="field"><label>Nazwa stacji</label><input id="stationInput" placeholder="np. Warszawa Wschodnia"></div>
+          <div class="color-pickers">
+            <div class="field"><label>Kolor czcionki</label><input type="color" id="stationTextColor" value="#1f334d"></div>
+            <div class="field"><label>Kolor tła</label><input type="color" id="stationBgColor" value="#eaf0f7"></div>
+          </div>
+          <button class="primary" style="margin-top:10px" onclick="addStation()">＋ Dodaj stację</button>
+          <div class="list" id="stationList"></div>
+        </div>
+        <div class="admin-card route-admin">
+          <h3>🗺️ Trasy numerów pociągów</h3>
+          <div class="subtitle" style="margin-bottom:12px">Dodaj pełną trasę konkretnego numeru pociągu. Karta służby może zawierać tylko odcinek, a tutaj zapiszesz wszystkie stacje i godziny.</div>
+          <div class="field"><label>Numer pociągu</label><input id="routeTrainNo" placeholder="np. 15111"></div>
+          <div style="margin-top:12px;font-size:12px;font-weight:900;color:var(--muted)">STACJE TRASY</div>
+          <div id="routeEditor" style="margin-top:8px"></div>
+          <div class="toolbar" style="margin-top:10px">
+            <button class="secondary" onclick="addRouteStopEditor()">＋ Dodaj stację trasy</button>
+            <button class="primary" onclick="saveTrainRoute()">💾 Zapisz trasę</button>
+          </div>
+          <div id="routeList" class="route-list"></div>
+        </div>
+        <div class="admin-card">
+          <h3>🎨 Kolory</h3>
+          <div class="color-row">Kolor główny <input type="color" id="accentColor" value="#17365d"></div>
+          <div class="color-row">Tło aplikacji <input type="color" id="bgColor" value="#eef3f8"></div>
+          <div class="color-row">Kolor tekstu <input type="color" id="textColor" value="#1f334d"></div>
+          <button class="primary" style="margin-top:12px" onclick="applyColors()">Zastosuj kolory</button>
+        </div>
+        <div class="admin-card">
+          <h3>💾 Dane</h3>
+          <div class="notice">Dane są zapisywane lokalnie w przeglądarce. Zalecane jest regularne wykonywanie kopii zapasowej.</div>
+          <div class="backup-actions">
+            <button class="secondary" onclick="exportBackup()">📥 Eksportuj kopię</button>
+            <label class="file-label">📤 Importuj kopię<input type="file" id="backupFile" accept="application/json" onchange="importBackup(event)"></label>
+            <button class="danger" onclick="clearAll()">🗑 Wyczyść dane</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</div>
+
+<script>
+let state=JSON.parse(localStorage.getItem('kartaState')||'null')||{
+ trains:[], stations:[], services:[],
+ colors:{accent:"#17365d",bg:"#eef3f8",text:"#1f334d"}
+};
+const oldTrains=["K 19152","K 91152","K 19154","K 91992"];
+const oldStations=["Warszawa Wschodnia","Skierniewice","DYSPOZYTOR","ZDANIE SŁUŻBY"];
+// Usuń domyślne dane z poprzedniej wersji, jeśli nadal znajdują się w pamięci przeglądarki.
+state.trains=(state.trains||[]).filter(x=>!oldTrains.includes(typeof x==="string"?x:x.name));
+state.stations=(state.stations||[]).filter(x=>!oldStations.includes(typeof x==="string"?x:x.name));
+state.trains=state.trains.map(x=>typeof x==="string"?{name:x,text:"#1f334d",bg:"#eaf0f7"}:x);
+state.stations=state.stations.map(x=>typeof x==="string"?{name:x,text:"#1f334d",bg:"#eaf0f7"}:x);
+state.services=state.services||[];
+state.settlements=state.settlements||[];
+state.trainRoutes=state.trainRoutes||[];
+state.colors=state.colors||{accent:"#17365d",bg:"#eef3f8",text:"#1f334d"};
+
+let current=new Date(), selectedDate=null;
+const months=["styczeń","luty","marzec","kwiecień","maj","czerwiec","lipiec","sierpień","wrzesień","październik","listopad","grudzień"];
+const days=["niedziela","poniedziałek","wtorek","środa","czwartek","piątek","sobota"];
+
+function saveState(){localStorage.setItem('kartaState',JSON.stringify(state))}
+function tick(){let d=new Date(); document.getElementById('clock').textContent=d.toLocaleTimeString('pl-PL');document.getElementById('dateNow').textContent=d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric'});renderHomeDashboard();}
+setInterval(tick,1000);tick();
+setInterval(renderHomeDashboard,1000);
+
+document.querySelectorAll('.tab,.tab-mobile').forEach(b=>b.onclick=()=>{
+ document.querySelectorAll('.tab,.tab-mobile').forEach(x=>x.classList.remove('active'));
+ b.classList.add('active');
+ document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+ document.getElementById(b.dataset.page).classList.add('active');
+ if(b.dataset.page==='admin')renderAdmin();
+ if(b.dataset.page==='cards')renderServiceCards();
+ if(b.dataset.page==='stats')renderStats();
+ if(b.dataset.page==='settlement'){populateSettlementServices();loadSettlement();}
+ if(b.dataset.page==='admin'){renderRouteAdmin();}
+});
+
+function renderCalendar(){
+ const y=current.getFullYear(),m=current.getMonth();
+ document.getElementById('monthLabel').textContent=months[m]+" "+y;
+ const el=document.getElementById('calendar');el.innerHTML="";
+ ["Pn","Wt","Śr","Cz","Pt","Sb","Nd"].forEach(x=>{let d=document.createElement('div');d.className='dow';d.textContent=x;el.appendChild(d)});
+ let first=(new Date(y,m,1).getDay()+6)%7, daysIn=new Date(y,m+1,0).getDate(), prev=new Date(y,m,0).getDate();
+ for(let i=0;i<first;i++){let d=document.createElement('div');d.className='day muted';d.textContent=prev-first+i+1;el.appendChild(d)}
+ for(let n=1;n<=daysIn;n++){
+   let d=document.createElement('div');d.className='day';d.innerHTML='<div class="daynum">'+n+'</div>';
+   let dt=new Date(y,m,n);
+   if(dt.toDateString()===new Date().toDateString())d.classList.add('today');
+   let iso=dt.toISOString().slice(0,10), services=state.services.filter(x=>x.date===iso);
+   services.forEach(s=>{d.innerHTML+='<span class="event-dot">Służba '+(s.no||'—')+'</span>'});
+   d.onclick=()=>selectDate(dt);el.appendChild(d)
+ }
+ let total=first+daysIn;for(let i=total;i<42;i++){let d=document.createElement('div');d.className='day muted';d.textContent=i-total+1;el.appendChild(d)}
+}
+function changeMonth(n){current.setMonth(current.getMonth()+n);renderCalendar()}
+function selectDate(d){
+ selectedDate=d;
+ document.getElementById('selectedInfo').textContent=d.toLocaleDateString('pl-PL',{weekday:'long',day:'2-digit',month:'2-digit',year:'numeric'});
+ document.querySelector('[data-page="service"]').click();
+ document.getElementById('serviceDate').value=d.toISOString().slice(0,10);
+ updateWeekday();
+}
+function updateWeekday(){let v=document.getElementById('serviceDate').value;if(!v)return;let d=new Date(v+'T12:00:00');document.getElementById('weekday').value=days[d.getDay()]}
+
+function trainOptions(){return '<option value=""></option>'+state.trains.map(x=>'<option value="'+escapeHtml(x.name)+'" style="color:'+escapeHtml(x.text)+';background:'+escapeHtml(x.bg)+'">'+escapeHtml(x.name)+'</option>').join('')}
+function stationOptions(){return '<option value=""></option>'+state.stations.map(x=>'<option value="'+escapeHtml(x.name)+'" style="color:'+escapeHtml(x.text||'#1f334d')+';background:'+escapeHtml(x.bg||'#eaf0f7')+'">'+escapeHtml(x.name)+'</option>').join('')}
+function refreshServiceStationOptions(){document.querySelectorAll('#trips select').forEach((sel,idx)=>{if(idx%3<2){const old=sel.value;sel.innerHTML=stationOptions();sel.value=old}})}
+function escapeHtml(v){return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+function addTrip(data={}){
+ document.getElementById('emptyTrips').style.display='none';
+ let tr=document.createElement('tr');
+ tr.innerHTML=`<td><input type="time" value="${escapeHtml(data.from||'')}"></td>
+ <td><input type="time" value="${escapeHtml(data.to||'')}"></td>
+ <td><select>${stationOptions()}</select></td><td><select>${stationOptions()}</select></td>
+ <td><select>${trainOptions()}</select></td><td><input type="text" placeholder="np. 19152" value="${escapeHtml(data.trainNo||'')}"></td>
+ <td><input type="text" placeholder="Uwagi..." value="${escapeHtml(data.note||'')}"></td>
+ <td><button class="secondary" onclick="this.closest('tr').remove();updateEmpty()">✕</button></td>`;
+ document.getElementById('trips').appendChild(tr);
+ let selects=tr.querySelectorAll('select');
+ if(data.start)selects[0].value=data.start;
+ if(data.end)selects[1].value=data.end;
+ if(data.trainType)selects[2].value=data.trainType;
+ if(!data.trainType && data.train)selects[2].value=data.train;
+}
+function updateEmpty(){document.getElementById('emptyTrips').style.display=document.querySelectorAll('#trips tr').length?'none':'block'}
+
+function saveService(){
+ const date=document.getElementById('serviceDate').value;
+ if(!date){alert('Wybierz dzień służby.');return}
+ const no=document.getElementById('serviceNo').value.trim();
+ if(!no){alert('Wpisz numer służby.');return}
+ const weekday=document.getElementById('weekday').value;
+ const trips=[...document.querySelectorAll('#trips tr')].map(r=>{
+   let i=r.querySelectorAll('input'),s=r.querySelectorAll('select');
+   return{from:i[0].value,to:i[1].value,start:s[0].value,end:s[1].value,trainType:s[2].value,trainNo:i[2].value,note:i[3].value}
+ });
+ state.services=state.services.filter(x=>x.date!==date);
+ state.services.push({date,no,weekday,trips});
+ saveState();renderCalendar();renderServiceCards();renderStats();populateSettlementServices();renderHomeDashboard();
+ alert('Karta służby została zapisana.');
+ document.querySelector('[data-page="cards"]').click();
+}
+
+function addTrain(){
+ let name=document.getElementById('trainInput').value.trim();
+ let text=document.getElementById('trainTextColor').value;
+ let bg=document.getElementById('trainBgColor').value;
+ if(name&&!state.trains.some(x=>x.name===name)){
+   state.trains.push({name,text,bg});saveState();
+   document.getElementById('trainInput').value='';renderAdmin();
+ }
+}
+function addStation(){
+ let name=document.getElementById('stationInput').value.trim();
+ let text=document.getElementById('stationTextColor').value;
+ let bg=document.getElementById('stationBgColor').value;
+ if(name&&!state.stations.some(x=>x.name===name)){
+   state.stations.push({name,text,bg});saveState();
+   document.getElementById('stationInput').value='';renderAdmin();refreshServiceStationOptions();
+ }
+}
+
+function addRouteStopEditor(data={}){
+ const wrap=document.getElementById('routeEditor');
+ const row=document.createElement('div');row.className='route-stop-editor';
+ row.innerHTML=`<input class="route-station" placeholder="Nazwa stacji" value="${escapeHtml(data.station||'')}">
+ <input class="route-arrival" type="time" value="${escapeHtml(data.arrival||'')}">
+ <input class="route-departure" type="time" value="${escapeHtml(data.departure||'')}">
+ <button class="danger" onclick="this.parentElement.remove()">✕</button>`;
+ wrap.appendChild(row);
+}
+function readRouteEditor(){
+ return [...document.querySelectorAll('#routeEditor .route-stop-editor')].map(r=>({station:r.querySelector('.route-station').value.trim(),arrival:r.querySelector('.route-arrival').value,departure:r.querySelector('.route-departure').value})).filter(x=>x.station||x.arrival||x.departure);
+}
+function saveTrainRoute(){
+ const trainNo=document.getElementById('routeTrainNo').value.trim();
+ const stops=readRouteEditor();
+ if(!trainNo){alert('Wpisz numer pociągu.');return}
+ if(!stops.length){alert('Dodaj przynajmniej jedną stację trasy.');return}
+ const existing=state.trainRoutes.findIndex(x=>x.trainNo===trainNo);
+ const route={trainNo,stops};
+ if(existing>=0) state.trainRoutes[existing]=route; else state.trainRoutes.push(route);
+ saveState();document.getElementById('routeTrainNo').value='';document.getElementById('routeEditor').innerHTML='';
+ renderRouteAdmin();renderHomeDashboard();alert('Trasa pociągu została zapisana.');
+}
+function editTrainRoute(trainNo){
+ const r=state.trainRoutes.find(x=>x.trainNo===trainNo);if(!r)return;
+ document.getElementById('routeTrainNo').value=r.trainNo;document.getElementById('routeEditor').innerHTML='';(r.stops||[]).forEach(addRouteStopEditor);
+ window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+function deleteTrainRoute(trainNo){
+ if(confirm('Usunąć trasę pociągu nr '+trainNo+' z administracji?')){state.trainRoutes=state.trainRoutes.filter(x=>x.trainNo!==trainNo);saveState();renderRouteAdmin();renderHomeDashboard();}
+}
+function renderRouteAdmin(){
+ const list=document.getElementById('routeList');if(!list)return;
+ list.innerHTML=(state.trainRoutes||[]).sort((a,b)=>String(a.trainNo).localeCompare(String(b.trainNo),undefined,{numeric:true})).map(r=>`<div class="route-item"><div><b>🚆 ${escapeHtml(r.trainNo)}</b><br><small>${(r.stops||[]).map(x=>escapeHtml(x.station)).join(' → ')}</small></div><div class="service-actions"><button class="secondary" onclick="editTrainRoute('${escapeHtml(r.trainNo)}')">✏️ Edytuj</button><button class="danger" onclick="deleteTrainRoute('${escapeHtml(r.trainNo)}')">🗑</button></div></div>`).join('')||'<div class="empty">Nie dodano jeszcze tras pociągów.</div>';
+}
+function todayISO(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function minutes(hm){if(!hm)return null;const [h,m]=hm.split(':').map(Number);return h*60+m}
+function renderHomeDashboard(){
+ const cd=document.getElementById('serviceCountdown');if(!cd)return;
+ const now=new Date(), iso=todayISO(), nowMin=now.getHours()*60+now.getMinutes()+now.getSeconds()/60;
+ const todayServices=(state.services||[]).filter(s=>s.date===iso);
+ let upcoming=null;
+ todayServices.forEach(s=>(s.trips||[]).forEach(t=>{const m=minutes(t.from);if(m!==null && m>=nowMin && (!upcoming||m<upcoming.m)){upcoming={s,t,m}}}));
+ if(upcoming){let diff=Math.max(0,Math.round((upcoming.m-nowMin)*60));const h=Math.floor(diff/3600),mm=Math.floor(diff%3600/60),ss=diff%60;cd.textContent=`${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;document.getElementById('serviceCountdownInfo').textContent=`Służba ${upcoming.s.no||'—'} • rozpoczęcie o ${upcoming.t.from} • ${upcoming.t.start||'—'}`;}
+ else if(todayServices.length){cd.textContent='Służba już trwa / zakończona';const s=todayServices[0];document.getElementById('serviceCountdownInfo').textContent=`Dzisiejsza służba: ${s.no||'—'}`;}
+ else {cd.textContent='—';document.getElementById('serviceCountdownInfo').textContent='Brak zapisanej służby na dziś.'}
+ // Aktywny odcinek z karty służby: od godziny odjazdu do przyjazdu. Jeśli istnieje pełna trasa numeru pociągu, pokazujemy ją.
+ const active=[];todayServices.forEach(s=>(s.trips||[]).forEach(t=>{const a=minutes(t.from),b=minutes(t.to);if(a!==null&&b!==null&&nowMin>=a&&nowMin<=b)active.push({s,t,a,b})}));
+ const title=document.getElementById('activeRouteTitle'), time=document.getElementById('activeRouteTime'), stops=document.getElementById('activeRouteStops');
+ if(!active.length){title.textContent='Brak aktywnej trasy';time.textContent='';stops.innerHTML='<div class="empty">Gdy aktualnie trwa odcinek pociągu z karty służby, jego pełna trasa pojawi się tutaj.</div>';return}
+ const a=active[0], route=(state.trainRoutes||[]).find(r=>String(r.trainNo)===String(a.t.trainNo));
+ title.textContent=`Poc. ${a.t.trainNo||'—'} • ${a.t.start||'—'} → ${a.t.end||'—'}`;time.textContent=`${a.t.from}–${a.t.to}`;
+ if(!route){stops.innerHTML=`<div class="notice">Brak zapisanej pełnej trasy dla numeru ${escapeHtml(a.t.trainNo||'—')}. Dodaj ją w Administracji.</div>`;return}
+ const routeStops=route.stops||[];
+ const nowMinute=nowMin;
+ let currentStationIndex=-1, currentSegmentIndex=-1;
+ routeStops.forEach((x,i)=>{const arr=minutes(x.arrival),dep=minutes(x.departure);if(arr!==null&&dep!==null&&nowMinute>=arr&&nowMinute<=dep)currentStationIndex=i;});
+ for(let i=0;i<routeStops.length-1;i++){const dep=minutes(routeStops[i].departure),arrNext=minutes(routeStops[i+1].arrival);if(dep!==null&&arrNext!==null&&nowMinute>=dep&&nowMinute<=arrNext){currentSegmentIndex=i;break}}
+ stops.innerHTML=routeStops.map((x,i)=>{
+   const isServiceStart=x.station===a.t.start, isServiceEnd=x.station===a.t.end;
+   const currentStop=(i===currentStationIndex)||isServiceStart&&i===currentStationIndex||isServiceEnd&&i===currentStationIndex;
+   const isSegmentEnd=i===currentSegmentIndex+1;
+   const next=routeStops[i+1];
+   const between=i===currentSegmentIndex;
+   return `<div class="route-stop ${currentStop?'current':''} ${isSegmentEnd?'current-segment':''}"><div class="route-time">${escapeHtml(x.arrival||x.departure||'—')}</div><div class="route-station">📍 ${escapeHtml(x.station)}${currentStop?' <span class="route-now">TERAZ</span>':''}${between&&next?' <span class="route-now">TERAZ → '+escapeHtml(next.station)+'</span>':''}</div><div class="route-kind">${isServiceStart?'ODJAZD':isServiceEnd?'PRZYJAZD':''}</div></div>`
+ }).join('');
+}
+function exportBackup(){
+ const payload={app:'Karta Służby',version:6,exportedAt:new Date().toISOString(),data:state};
+ const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='karta_sluzby_backup_'+todayISO()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function importBackup(event){
+ const file=event.target.files?.[0];if(!file)return;
+ const reader=new FileReader();reader.onload=()=>{try{const payload=JSON.parse(reader.result);const data=payload.data||payload;if(!data||!Array.isArray(data.services)||!Array.isArray(data.trains)||!Array.isArray(data.stations))throw new Error('Nieprawidłowy plik');if(!confirm('Import zastąpi aktualne dane w aplikacji. Kontynuować?'))return;state={...state,...data};state.settlements=state.settlements||[];state.trainRoutes=state.trainRoutes||[];saveState();loadColors();renderCalendar();renderAdmin();renderServiceCards();renderStats();populateSettlementServices();renderHomeDashboard();alert('Dane zostały zaimportowane.');}catch(e){alert('Nie udało się zaimportować kopii danych. Plik może być nieprawidłowy.');}event.target.value='';};reader.readAsText(file);
+}
+
+function renderAdmin(){
+ document.getElementById('trainList').innerHTML=state.trains.map((x,i)=>
+   `<span class="chip" style="color:${x.text};background:${x.bg}">🚆 ${escapeHtml(x.name)} <button title="Usuń" onclick="deleteTrain(${i})">✕</button></span>`).join('');
+ document.getElementById('stationList').innerHTML=state.stations.map((x,i)=>
+   `<span class="chip" style="color:${x.text};background:${x.bg}">📍 ${escapeHtml(x.name)} <button title="Usuń" onclick="deleteStation(${i})">✕</button></span>`).join('');
+ document.getElementById('accentColor').value=state.colors.accent;
+ document.getElementById('bgColor').value=state.colors.bg;
+ document.getElementById('textColor').value=state.colors.text;
+}
+function deleteTrain(i){
+ if(confirm('Usunąć ten rodzaj pociągu z administracji?')){state.trains.splice(i,1);saveState();renderAdmin()}
+}
+function deleteStation(i){
+ if(confirm('Usunąć tę stację z administracji?')){state.stations.splice(i,1);saveState();renderAdmin()}
+}
+
+function renderServiceCards(){
+ const el=document.getElementById('serviceCards');
+ if(!state.services.length){el.innerHTML='<div class="empty-cards">📋<br><br>Nie utworzono jeszcze żadnej karty służby.</div>';return}
+ const sorted=[...state.services].sort((a,b)=>a.date.localeCompare(b.date));
+ el.innerHTML=sorted.map(s=>{
+   const d=new Date(s.date+'T12:00:00');
+   const trips=s.trips||[];
+   const first=trips[0], last=trips[trips.length-1];
+   return `<div class="service-card">
+     <div class="service-card-head"><div class="service-number">📋 Służba ${escapeHtml(s.no||'—')}</div><div class="service-date">${d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric'})}</div></div>
+     <div class="service-meta">
+       <div class="meta-box">📅 Dzień tygodnia<b>${escapeHtml(s.weekday||days[d.getDay()])}</b></div>
+       <div class="meta-box">🚆 Pociągi<b>${trips.length}</b></div>
+       <div class="meta-box">🕐 Początek<b>${escapeHtml(first?.from||'—')}</b></div>
+       <div class="meta-box">🕐 Koniec<b>${escapeHtml(last?.to||'—')}</b></div>
+     </div>
+     <div class="service-actions">
+       <button class="primary" onclick="openService('${s.date}')">📋 Otwórz</button>
+       <button class="danger" onclick="deleteService('${s.date}')">🗑 Usuń</button>
+     </div>
+   </div>`
+ }).join('');
+}
+function openService(date){
+ const s=state.services.find(x=>x.date===date);if(!s)return;
+ document.querySelector('[data-page="service"]').click();
+ document.getElementById('serviceNo').value=s.no||'';
+ document.getElementById('serviceDate').value=s.date;updateWeekday();
+ document.getElementById('trips').innerHTML='';
+ (s.trips||[]).forEach(t=>addTrip(t));updateEmpty();
+}
+function deleteService(date){
+ const s=state.services.find(x=>x.date===date);if(!s)return;
+ if(confirm('Usunąć kartę służby nr '+(s.no||'—')+'?')){
+   state.services=state.services.filter(x=>x.date!==date);state.settlements=state.settlements.filter(x=>x.date!==date);saveState();renderCalendar();renderServiceCards();renderStats();populateSettlementServices();renderHomeDashboard();renderHomeDashboard();
+ }
+}
+
+function formatPLN(n){return Number(n||0).toLocaleString('pl-PL',{minimumFractionDigits:2,maximumFractionDigits:2})+' zł'}
+function populateSettlementServices(){
+ const sel=document.getElementById('settlementService');
+ const current=sel.value;
+ sel.innerHTML='<option value="">— wybierz kartę służby —</option>'+[...state.services].sort((a,b)=>b.date.localeCompare(a.date)).map(s=>`<option value="${escapeHtml(s.date)}">Służba ${escapeHtml(s.no||'—')} — ${escapeHtml(formatDate(s.date))}</option>`).join('');
+ if(current && state.services.some(x=>x.date===current)) sel.value=current;
+ else if(state.services.length) sel.value=[...state.services].sort((a,b)=>b.date.localeCompare(a.date))[0].date;
+}
+function formatDate(date){return new Date(date+'T12:00:00').toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit',year:'numeric'})}
+function addSettlementRow(type,data={}){
+ const wrap=document.getElementById(type==='tickets'?'ticketRows':'feeRows');
+ const row=document.createElement('div');row.className='settlement-row';
+ row.innerHTML=`<input class="settlement-desc" placeholder="${type==='tickets'?'Rodzaj biletu / uwaga':'Rodzaj opłaty / uwaga'}" value="${escapeHtml(data.desc||'')}">
+ <input class="settlement-qty" type="number" min="0" step="1" placeholder="Ilość" value="${escapeHtml(data.qty??'')}" oninput="updateSettlementTotal()">
+ <input class="settlement-amount" type="number" min="0" step="0.01" placeholder="Kwota zł" value="${escapeHtml(data.amount??'')}" oninput="updateSettlementTotal()">
+ <button class="danger" onclick="this.parentElement.remove();updateSettlementTotal()">✕</button>`;
+ wrap.appendChild(row);updateSettlementTotal();
+}
+function loadSettlement(){
+ const date=document.getElementById('settlementService').value;
+ document.getElementById('ticketRows').innerHTML='';document.getElementById('feeRows').innerHTML='';
+ const s=state.settlements.find(x=>x.date===date);
+ document.getElementById('settlementDate').value=date||'';
+ document.getElementById('controlsCount').value=s?.controls??'';
+ (s?.tickets||[]).forEach(x=>addSettlementRow('tickets',x));
+ (s?.fees||[]).forEach(x=>addSettlementRow('fees',x));
+ if(!s){addSettlementRow('tickets');addSettlementRow('fees')}
+ updateSettlementTotal();
+}
+function readSettlementRows(id){return [...document.querySelectorAll('#'+id+' .settlement-row')].map(r=>({desc:r.querySelector('.settlement-desc').value.trim(),qty:Number(r.querySelector('.settlement-qty').value||0),amount:Number(r.querySelector('.settlement-amount').value||0)})).filter(x=>x.desc||x.qty||x.amount)}
+function updateSettlementTotal(){
+ const tickets=readSettlementRows('ticketRows'),fees=readSettlementRows('feeRows');
+ const total=tickets.reduce((a,x)=>a+x.amount,0)+fees.reduce((a,x)=>a+x.amount,0);
+ document.getElementById('settlementTotal').textContent=formatPLN(total);
+}
+function saveSettlement(){
+ const date=document.getElementById('settlementService').value;
+ if(!date){alert('Najpierw wybierz kartę służby.');return}
+ const tickets=readSettlementRows('ticketRows'),fees=readSettlementRows('feeRows');
+ const controls=Number(document.getElementById('controlsCount').value||0);
+ const total=tickets.reduce((a,x)=>a+x.amount,0)+fees.reduce((a,x)=>a+x.amount,0);
+ state.settlements=state.settlements.filter(x=>x.date!==date);
+ state.settlements.push({date,controls,tickets,fees,total});
+ saveState();renderStats();alert('Rozliczenie zostało zapisane.');
+}
+function clearSettlementForm(){
+ document.getElementById('controlsCount').value='';document.getElementById('ticketRows').innerHTML='';document.getElementById('feeRows').innerHTML='';addSettlementRow('tickets');addSettlementRow('fees');updateSettlementTotal();
+}
+function renderStats(){
+ const services=state.services||[];
+ const trainMap={},stationMap={};
+ services.forEach(s=>(s.trips||[]).forEach(t=>{
+   if(t.trainType){(trainMap[t.trainType]??=[]).push(s.date)}
+   if(t.start){(stationMap[t.start]??=[]).push(s.date)}
+   if(t.end && t.end!==t.start){(stationMap[t.end]??=[]).push(s.date)}
+ }));
+ const uniqueDates=a=>[...new Set(a)].sort();
+ const renderHistory=(map,icon)=>Object.keys(map).sort().map(name=>`<div class="stats-item"><div class="stats-name">${icon} ${escapeHtml(name)}</div><div class="stats-dates">${uniqueDates(map[name]).map(formatDate).join(', ')}</div></div>`).join('')||'<div class="empty">Brak danych.</div>';
+ document.getElementById('trainStats').innerHTML=renderHistory(trainMap,'🚆');
+ document.getElementById('stationStats').innerHTML=renderHistory(stationMap,'📍');
+ const settlements=state.settlements||[];
+ const ticketQty=settlements.reduce((a,s)=>a+(s.tickets||[]).reduce((b,x)=>b+Number(x.qty||0),0),0);
+ const ticketAmount=settlements.reduce((a,s)=>a+(s.tickets||[]).reduce((b,x)=>b+Number(x.amount||0),0),0);
+ const feeQty=settlements.reduce((a,s)=>a+(s.fees||[]).reduce((b,x)=>b+Number(x.qty||0),0),0);
+ const feeAmount=settlements.reduce((a,s)=>a+(s.fees||[]).reduce((b,x)=>b+Number(x.amount||0),0),0);
+ const controls=settlements.reduce((a,s)=>a+Number(s.controls||0),0);
+ document.getElementById('statsSummary').innerHTML=`<div class="meta-box">📋 Karty służb<b>${services.length}</b></div><div class="meta-box">🔎 Kontrole<b>${controls}</b></div><div class="meta-box">💰 Suma rozliczeń<b>${formatPLN(ticketAmount+feeAmount)}</b></div>`;
+ document.getElementById('ticketStats').innerHTML=`<div class="stats-item"><div><div class="stats-name">Łączna ilość</div><div class="stats-number">${ticketQty}</div></div><div class="stats-dates">${formatPLN(ticketAmount)}</div></div>`;
+ document.getElementById('feeStats').innerHTML=`<div class="stats-item"><div><div class="stats-name">Łączna ilość</div><div class="stats-number">${feeQty}</div></div><div class="stats-dates">${formatPLN(feeAmount)}</div></div>`;
+}
+
+function applyColors(){
+ state.colors={accent:accentColor.value,bg:bgColor.value,text:textColor.value};
+ document.documentElement.style.setProperty('--accent',state.colors.accent);
+ document.documentElement.style.setProperty('--bg',state.colors.bg);
+ document.documentElement.style.setProperty('--text',state.colors.text);
+ saveState();
+}
+function loadColors(){
+ document.documentElement.style.setProperty('--accent',state.colors.accent);
+ document.documentElement.style.setProperty('--bg',state.colors.bg);
+ document.documentElement.style.setProperty('--text',state.colors.text);
+}
+function clearAll(){if(confirm('Wyczyścić wszystkie zapisane dane?')){localStorage.removeItem('kartaState');location.reload()}}
+
+loadColors();saveState();renderCalendar();renderAdmin();renderRouteAdmin();renderServiceCards();renderStats();populateSettlementServices();renderHomeDashboard();
+if("serviceWorker" in navigator && location.protocol !== "file:"){ navigator.serviceWorker.register("karta-sluzby-sw.js").catch(()=>{}); }
+</script>
+</body>
+</html>
